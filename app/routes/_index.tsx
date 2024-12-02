@@ -3,6 +3,7 @@ import { useLoaderData } from "@remix-run/react";
 import { Rocket } from "lucide-react";
 import { getApiClient } from "~/lib/client";
 import type { SelectPost, SelectUser } from "~/schema";
+
 export const meta: MetaFunction = () => {
   return [{ title: "New Remix App" }, { name: "description", content: "Welcome to Remix!" }];
 };
@@ -30,14 +31,24 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
       users: users as SelectUser[],
       posts: (posts as any[]).map((post) => ({
         ...post,
-        createdAt: new Date(post.createdAt),
-        updatedAt: new Date(post.updatedAt),
+        createdAt: new Date(post.createdAt).toISOString(),
+        updatedAt: new Date(post.updatedAt).toISOString(),
       })),
     };
   } catch (error) {
     console.error("Loader error:", error);
     throw error;
   }
+}
+
+// 日付フォーマット用のヘルパー関数
+function formatDate(dateString: string) {
+  const date = new Date(dateString);
+  return new Intl.DateTimeFormat("ja-JP", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+  }).format(date);
 }
 
 export default function Index() {
@@ -64,7 +75,7 @@ export default function Index() {
                   <p className="font-bold">{post.title}</p>
                   <p className="text-sm">{post.content}</p>
                   <p className="text-xs text-gray-600">投稿者: {post.userName}</p>
-                  <p className="text-xs text-gray-600">作成日: {new Date(post.createdAt).toLocaleDateString()}</p>
+                  <p className="text-xs text-gray-600">作成日: {formatDate(post.createdAt)}</p>
                 </div>
               ))}
             </div>

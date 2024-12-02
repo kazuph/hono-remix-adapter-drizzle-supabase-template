@@ -15,13 +15,8 @@ app.use(async (c, next) => {
 const route = app
   .get("/api/users", async (c) => {
     try {
-      console.log("Starting /api/users request with env:", {
-        hasDbUrl: !!c.env.DATABASE_URL,
-      });
       const db = getDb(c);
-      console.log("DB connection established");
       const users = await db.select().from(usersTable);
-      console.log("Query executed successfully");
       return c.json(users);
     } catch (error) {
       console.error("Detailed error in /api/users:", {
