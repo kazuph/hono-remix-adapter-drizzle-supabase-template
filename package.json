@@ -6,6 +6,7 @@
   "scripts": {
     "build": "remix vite:build",
     "preview": "pnpm run build && wrangler pages dev",
+    "tail": "wrangler pages deployment tail --project-name hono-remix-adapter-drizzle-supabase-app",
     "deploy:pages": "pnpm run build && wrangler pages deploy",
     "dev": "remix vite:dev",
     "lint": "biome lint .",
