@@ -1,1 +1,1 @@
-EXAMPLE_VARIABLE=example_valiable
+DATABASE_URL="postgresql://postgres..."

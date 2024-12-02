@@ -1,14 +1,7 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "my-remix-app"
+name = "hono-remix-adapter-drizzle-supabase-app"
 compatibility_date = "2024-11-06"
-main = "./worker.ts"
-assets = { directory = "./build/client" }
-
-# Workers Logs
-# Docs: https://developers.cloudflare.com/workers/observability/logs/workers-logs/
-# Configuration: https://developers.cloudflare.com/workers/observability/logs/workers-logs/#enable-workers-logs
-[observability]
-enabled = true
-
-[vars]
-EXAMPLE_VARIABLE = "kazuph!!!"
+compatibility_flags = ["nodejs_compat"]
+# main = "./worker.ts"
+# assets = { directory = "./build/client" }
+pages_build_output_dir = "./build/client"

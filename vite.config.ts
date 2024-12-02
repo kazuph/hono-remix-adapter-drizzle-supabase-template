@@ -1,7 +1,8 @@
-import { defineConfig } from "vite";
-import { vitePlugin as remix, cloudflareDevProxyVitePlugin } from "@remix-run/dev";
-import serverAdapter from "hono-remix-adapter/vite";
+import path from "path";
 import adapter from "@hono/vite-dev-server/cloudflare";
+import { cloudflareDevProxyVitePlugin, vitePlugin as remix } from "@remix-run/dev";
+import serverAdapter from "hono-remix-adapter/vite";
+import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { getLoadContext } from "./load-context";
 
@@ -11,7 +12,7 @@ declare module "@remix-run/cloudflare" {
   }
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [
     cloudflareDevProxyVitePlugin(),
     remix({
@@ -34,11 +35,19 @@ export default defineConfig({
     resolve: {
       conditions: ["workerd", "worker", "browser"],
     },
+    ...(mode === "development" && {
+      noExternal: ["postgres"],
+    }),
   },
   resolve: {
     mainFields: ["browser", "module", "main"],
+    alias: {
+      ...(mode === "development" && {
+        postgres: path.resolve(__dirname, "node_modules/postgres/src/index.js"),
+      }),
+    },
   },
   build: {
     minify: true,
   },
-});
+}));
