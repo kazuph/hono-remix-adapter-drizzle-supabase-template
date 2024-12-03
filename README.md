@@ -1,6 +1,6 @@
 # 🚀 Hono Remix Adapter Template
 
-A modern web application template powered by Remix and Hono, designed to run on Cloudflare Pages.
+A web application template powered by Remix and Hono, designed to run on Cloudflare Pages.
 
 ![sample](sample.png)
 
