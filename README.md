@@ -7,9 +7,9 @@ A modern web application template powered by Remix and Hono, designed to run on 
 ## 🛠 Tech Stack
 
 ### 🏗 Framework & Runtime
-- 🎵 Remix v2.14.0
+- 🎵 Remix v2.15.0
 - ☁️ Cloudflare Pages
-- 🔌 Hono Adapter v0.5.0
+- 🔌 Hono Adapter v0.5.2
 
 ### 💾 Database & ORM
 - 🐘 Supabase (PostgreSQL)
