@@ -2,7 +2,7 @@ import { zValidator } from "@hono/zod-validator";
 import { eq } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
-import { postsTable, usersTable } from "../app/schema";
+import { posts, users } from "../app/schema";
 import { getDb } from "./db";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -16,8 +16,8 @@ const route = app
   .get("/api/users", async (c) => {
     try {
       const db = getDb(c);
-      const users = await db.select().from(usersTable);
-      return c.json(users);
+      const result = await db.select().from(users);
+      return c.json(result);
     } catch (error) {
       console.error("Detailed error in /api/users:", {
         error,
@@ -30,19 +30,19 @@ const route = app
   .get("/api/posts", async (c) => {
     try {
       const db = getDb(c);
-      const posts = await db
+      const result = await db
         .select({
-          id: postsTable.id,
-          title: postsTable.title,
-          content: postsTable.content,
-          createdAt: postsTable.createdAt,
-          updatedAt: postsTable.updatedAt,
-          userId: postsTable.userId,
-          userName: usersTable.name,
+          id: posts.id,
+          title: posts.title,
+          content: posts.content,
+          created_at: posts.created_at,
+          updated_at: posts.updated_at,
+          user_id: posts.user_id,
+          user_name: users.name,
         })
-        .from(postsTable)
-        .leftJoin(usersTable, eq(postsTable.userId, usersTable.id));
-      return c.json(posts);
+        .from(posts)
+        .leftJoin(users, eq(posts.user_id, users.id));
+      return c.json(result);
     } catch (error) {
       console.error("Error fetching posts:", error);
       return c.json(
@@ -59,16 +59,18 @@ const route = app
     zValidator(
       "json",
       z.object({
+        id: z.string(),
         name: z.string(),
-        age: z.number(),
         email: z.string().email(),
+        bio: z.string().nullable().optional(),
+        avatar_url: z.string().nullable().optional(),
       }),
     ),
     async (c) => {
       try {
         const data = await c.req.json();
         const db = getDb(c);
-        const result = await db.insert(usersTable).values(data).returning();
+        const result = await db.insert(users).values(data).returning();
         return c.json(result[0]);
       } catch (error) {
         console.error(error);
@@ -83,14 +85,14 @@ const route = app
       z.object({
         title: z.string(),
         content: z.string(),
-        userId: z.number(),
+        user_id: z.string(),
       }),
     ),
     async (c) => {
       try {
         const data = await c.req.json();
         const db = getDb(c);
-        const result = await db.insert(postsTable).values(data).returning();
+        const result = await db.insert(posts).values(data).returning();
         return c.json(result[0]);
       } catch (error) {
         console.error(error);
