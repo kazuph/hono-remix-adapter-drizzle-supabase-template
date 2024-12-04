@@ -7,13 +7,24 @@ import type { SelectUser } from "~/schema";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export const meta: MetaFunction = () => {
-  return [{ title: "New Remix App" }, { name: "description", content: "Welcome to Remix!" }];
+  return [{ title: "ユーザー詳細" }, { name: "description", content: "ユーザーの投稿一覧" }];
 };
 
 type ContextType = {
   user: User | null;
   users: SelectUser[];
 };
+
+// APIレスポンス用の型定義
+interface ApiUser {
+  id: string;
+  name: string;
+  email: string;
+  bio: string | null;
+  avatar_url: string | null;
+  created_at: string;
+  updated_at: string;
+}
 
 interface Post {
   id: string;
@@ -28,7 +39,7 @@ interface Post {
 
 interface ErrorResponse {
   error: string;
-  details: string;
+  details?: string;
 }
 
 function isErrorResponse(response: any): response is ErrorResponse {
@@ -46,7 +57,12 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-export async function loader({ request, context }: LoaderFunctionArgs) {
+export async function loader({ request, context, params }: LoaderFunctionArgs) {
+  const userId = params.userId;
+  if (!userId) {
+    throw new Error("User ID is required");
+  }
+
   const { client } = createSupabaseServerClient(request, context);
   const {
     data: { user },
@@ -54,20 +70,27 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
   const apiClient = getApiClient(request);
 
-  // クエリパラメータを含むパスを構築
-  let path = "/api/posts";
+  // ユーザー情報を取得
+  const userResponse = await apiClient.api.users[":userId"].$get({
+    param: { userId },
+  });
+  const userData: ApiUser | ErrorResponse = await userResponse.json();
+
+  if (isErrorResponse(userData)) {
+    throw new Error("User not found");
+  }
+
+  // ユーザーの投稿を取得
   const searchParams = new URLSearchParams();
   if (!user) {
     searchParams.set("publicOnly", "true");
   } else {
-    // ログインユーザーのIDを渡して、非公開記事の表示制御に使用
     searchParams.set("currentUserId", user.id);
   }
-  if (searchParams.toString()) {
-    path += `?${searchParams.toString()}`;
-  }
 
-  const postsResponse = await apiClient.api.posts.$get(path);
+  const postsResponse = await apiClient.api.users[":userId"].posts.$get({
+    param: { userId },
+  });
   const data = await postsResponse.json();
 
   if (isErrorResponse(data)) {
@@ -79,34 +102,37 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     (a: Post, b: Post) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
   );
 
-  return { postsData: sortedPosts };
+  return { pageUser: userData, postsData: sortedPosts };
 }
 
-export default function Index() {
-  const { postsData } = useLoaderData<typeof loader>();
+export default function UserDetail() {
+  const { pageUser, postsData } = useLoaderData<typeof loader>();
   const { user } = useOutletContext<ContextType>();
 
   return (
     <div className="p-8">
       <div className="w-full max-w-6xl mx-auto space-y-8">
+        {/* User Profile Section */}
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold mb-4">{pageUser.name}</h1>
+          {pageUser.bio && <p className="text-gray-600 mb-2">{pageUser.bio}</p>}
+          {pageUser.email && <p className="text-gray-500 text-sm">Email: {pageUser.email}</p>}
+        </div>
+
         {/* Posts Section */}
         <div>
-          {/* Header with New Post Button */}
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-2xl font-bold">投稿一覧</h2>
-            {user && (
+            {user && user.id === pageUser.id && (
               <Link to="/posts/new">
                 <Button>新規投稿</Button>
               </Link>
             )}
           </div>
 
-          {/* Posts List */}
           <div className="border rounded-lg p-4">
             {!postsData || postsData.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                まだ投稿がありません。最初の投稿を作成してみましょう！
-              </div>
+              <div className="text-center py-8 text-gray-500">まだ投稿がありません。</div>
             ) : (
               <div className="space-y-4">
                 {postsData.map((post: Post) => (
@@ -114,15 +140,6 @@ export default function Index() {
                     <div className="flex justify-between items-start mb-2">
                       <div>
                         <h3 className="font-bold text-lg">{post.title}</h3>
-                        <p className="text-sm text-gray-600">
-                          投稿者:{" "}
-                          <Link
-                            to={`/users/${post.user_id}`}
-                            className="text-blue-600 hover:text-blue-800 hover:underline"
-                          >
-                            {post.user_name ?? "Unknown User"}
-                          </Link>
-                        </p>
                       </div>
                       {!post.is_public && (
                         <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded">非公開</span>

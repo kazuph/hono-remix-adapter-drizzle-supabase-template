@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
+import { boolean, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { v7 as uuidv7 } from "uuid";
 
 export const users = pgTable("users", {
@@ -19,6 +19,7 @@ export const posts = pgTable("posts", {
     .$defaultFn(() => uuidv7()),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  is_public: boolean("is_public").notNull().default(true),
   user_id: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
