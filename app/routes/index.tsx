@@ -22,6 +22,16 @@ export default function Index() {
     return users?.find((user) => user.id === userId);
   };
 
+  // 日付フォーマット用の関数
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return new Intl.DateTimeFormat("ja-JP", {
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    }).format(date);
+  };
+
   return (
     <div className="space-y-6">
       {/* ウェルカムメッセージ */}
@@ -50,7 +60,7 @@ export default function Index() {
                         {postUser?.name || "不明なユーザー"}
                       </Link>
                     </p>
-                    <p className="text-sm text-gray-500">投稿日: {new Date(post.created_at).toLocaleDateString()}</p>
+                    <p className="text-sm text-gray-500">投稿日: {formatDate(post.created_at)}</p>
                   </div>
                 </div>
               );

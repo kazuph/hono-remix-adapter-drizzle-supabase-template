@@ -56,7 +56,7 @@ export default function App() {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <div className="min-h-screen flex flex-col">
           <Header user={authUser} />
           <main className="flex-1 container mx-auto px-4 py-8">
