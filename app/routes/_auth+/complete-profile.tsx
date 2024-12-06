@@ -11,7 +11,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   } = await supabase.client.auth.getUser();
 
   if (!user) {
-    return redirect("/auth/login");
+    return redirect("/login");
   }
 
   return json({
@@ -28,7 +28,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   } = await supabase.client.auth.getUser();
 
   if (!user) {
-    return redirect("/auth/login");
+    return redirect("/login");
   }
 
   const formData = await request.formData();

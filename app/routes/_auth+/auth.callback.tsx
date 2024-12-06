@@ -15,7 +15,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       data: { user },
     } = await supabase.client.auth.getUser();
     if (!user) {
-      return redirect("/auth/login");
+      return redirect("/login");
     }
 
     try {
@@ -37,14 +37,14 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       if (!response.ok || responseBody === "[]") {
         console.log("⚠️ User not found (empty response or error), redirecting to profile completion");
         // ユーザーが存在しない場合は、ユーザー情報入力ページへリダイレクト
-        return redirect("/auth/complete-profile", {
+        return redirect("/complete-profile", {
           headers: supabase.headers,
         });
       }
     } catch (error) {
       // エラーの場合も新規ユーザーとして扱う
       console.error("❌ Error during user check:", error);
-      return redirect("/auth/complete-profile", {
+      return redirect("/complete-profile", {
         headers: supabase.headers,
       });
     }

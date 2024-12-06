@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type ActionFunctionArgs, type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
 import { Form, useNavigate } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
@@ -54,6 +54,19 @@ export async function action({ request, context }: ActionFunctionArgs) {
   }
 
   return redirect("/");
+}
+
+export async function loader({ request, context }: LoaderFunctionArgs) {
+  const { client } = createSupabaseServerClient(request, context);
+  const {
+    data: { user },
+  } = await client.auth.getUser();
+
+  if (!user) {
+    return redirect("/login");
+  }
+
+  return json({});
 }
 
 export default function NewPost() {

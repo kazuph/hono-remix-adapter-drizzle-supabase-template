@@ -3,7 +3,6 @@ import { Links, Meta, Outlet, Scripts, ScrollRestoration, useLoaderData } from "
 import { getUser } from "~/auth.server";
 import { Header } from "~/components/header";
 import { getApiClient } from "~/lib/client";
-import type { SelectUser } from "./schema";
 
 import styles from "./tailwind.css?url";
 
@@ -19,22 +18,35 @@ function isErrorResponse(response: any): response is ErrorResponse {
 }
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  const user = await getUser(request, context);
+  const authUser = await getUser(request, context);
 
   // ユーザー一覧を取得
   const apiClient = getApiClient(request);
-  const usersResponse = await apiClient.api.users.$get();
-  const usersData = await usersResponse.json();
+  const [usersResponse, postsResponse] = await Promise.all([apiClient.api.users.$get(), apiClient.api.posts.$get()]);
+
+  const [usersData, postsData] = await Promise.all([usersResponse.json(), postsResponse.json()]);
 
   if (isErrorResponse(usersData)) {
     throw new Error(`Failed to fetch users: ${usersData.error}`);
   }
 
-  return { user, users: usersData };
+  if (isErrorResponse(postsData)) {
+    throw new Error(`Failed to fetch posts: ${postsData.error}`);
+  }
+
+  // 認証ユーザーのDBデータを取得
+  const dbUser = authUser ? usersData.find((u: any) => u.email === authUser.email) : null;
+
+  return {
+    authUser, // Headerコンポーネント用
+    user: dbUser, // アプリケーション用のユーザーデータ
+    users: usersData,
+    posts: postsData,
+  };
 }
 
 export default function App() {
-  const { user, users } = useLoaderData<typeof loader>();
+  const { authUser, user, users, posts } = useLoaderData<typeof loader>();
 
   return (
     <html lang="ja">
@@ -46,10 +58,15 @@ export default function App() {
       </head>
       <body>
         <div className="min-h-screen flex flex-col">
-          <Header user={user} />
-          <main className="flex-1">
-            <Outlet context={{ user, users }} />
+          <Header user={authUser} />
+          <main className="flex-1 container mx-auto px-4 py-8">
+            <Outlet context={{ user, users, posts }} />
           </main>
+          <footer className="bg-gray-800 text-white py-4">
+            <div className="container mx-auto px-4 text-center">
+              <p>&copy; 2024 Your App Name. All rights reserved.</p>
+            </div>
+          </footer>
         </div>
         <ScrollRestoration />
         <Scripts />
