@@ -5,9 +5,7 @@ import { z } from "zod";
 import { posts, users } from "../../app/schema";
 import { getDb } from "../db";
 
-const postsApp = new Hono<{ Bindings: Env }>().basePath("/");
-
-const postsRoutes = postsApp
+const app = new Hono<{ Bindings: Env }>()
   .get("/", async (c) => {
     try {
       const db = getDb(c);
@@ -75,4 +73,4 @@ const postsRoutes = postsApp
     },
   );
 
-export default postsRoutes;
+export default app;

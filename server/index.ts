@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import postsApp from "./routes/posts";
-import usersApp from "./routes/users";
+import posts from "./routes/posts";
+import users from "./routes/users";
 
 const app = new Hono<{ Bindings: Env }>().basePath("/api");
 
@@ -9,10 +9,7 @@ app.use(async (c, next) => {
   c.header("X-Powered-By", "Remix and Hono");
 });
 
-// const routes = app.route("/", usersApp).route("/", postsRoutes);
-const postsRoute = app.route("/posts", postsApp);
-const usersRoute = app.route("/users", usersApp);
+const route = app.route("/posts", posts).route("/users", users);
 
-// export type AppType = UsersAppType | PostsAppType;
-export type AppType = typeof postsRoute | typeof usersRoute;
 export default app;
+export type AppType = typeof route;
