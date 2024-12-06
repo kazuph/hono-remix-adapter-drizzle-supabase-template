@@ -2,16 +2,16 @@ import { json } from "@remix-run/cloudflare";
 import type { AppLoadContext } from "@remix-run/cloudflare";
 import { createSupabaseServerClient } from "~/supabase.server";
 
-export const signInWithGoogle = async (
-  request: Request,
-  c: AppLoadContext,
-  successRedirectPath: string = "http://localhost:5173/auth/callback",
-) => {
+export const signInWithGoogle = async (request: Request, c: AppLoadContext, successRedirectPath?: string) => {
   const supabase = createSupabaseServerClient(request, c);
+
+  const url = new URL(request.url);
+  const redirectTo = successRedirectPath || `${url.origin}/auth/callback`;
+
   const { data, error } = await supabase.client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: successRedirectPath,
+      redirectTo,
     },
   });
 
