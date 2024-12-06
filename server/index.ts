@@ -49,6 +49,40 @@ const route = app
       );
     }
   })
+  .patch(
+    "/api/users/:userId",
+    zValidator(
+      "json",
+      z.object({
+        name: z.string(),
+        bio: z.string().nullable(),
+      }),
+    ),
+    async (c) => {
+      try {
+        const userId = c.req.param("userId");
+        const data = await c.req.json();
+        const db = getDb(c);
+
+        const result = await db.update(users).set(data).where(eq(users.id, userId)).returning();
+
+        if (result.length === 0) {
+          return c.json({ error: "User not found" }, 404);
+        }
+
+        return c.json(result[0]);
+      } catch (error) {
+        console.error("Error updating user:", error);
+        return c.json(
+          {
+            error: "Failed to update user",
+            details: error instanceof Error ? error.message : String(error),
+          },
+          500,
+        );
+      }
+    },
+  )
   .get("/api/users/:userId/posts", async (c) => {
     try {
       const db = getDb(c);

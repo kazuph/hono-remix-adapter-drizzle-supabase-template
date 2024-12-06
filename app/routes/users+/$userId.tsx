@@ -1,6 +1,7 @@
 import type { LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
 import { Link, useLoaderData, useOutletContext } from "@remix-run/react";
 import type { User } from "@supabase/supabase-js";
+import { Pencil } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
 import type { SelectUser } from "~/schema";
@@ -41,6 +42,9 @@ interface ErrorResponse {
   details?: string;
 }
 
+type ApiUserResponse = ApiUser | ErrorResponse;
+type ApiPostsResponse = Post[] | ErrorResponse;
+
 function isErrorResponse(response: any): response is ErrorResponse {
   return "error" in response;
 }
@@ -71,7 +75,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const userResponse = await apiClient.api.users[":userId"].$get({
     param: { userId },
   });
-  const userData: ApiUser | ErrorResponse = await userResponse.json();
+  const userData: ApiUserResponse = await userResponse.json();
 
   if (isErrorResponse(userData)) {
     throw new Error("User not found");
@@ -87,7 +91,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const postsResponse = await apiClient.api.users[":userId"].posts.$get({
     param: { userId },
   });
-  const data = await postsResponse.json();
+  const data: ApiPostsResponse = await postsResponse.json();
 
   if (isErrorResponse(data)) {
     throw new Error(`Failed to fetch posts: ${data.error}`);
@@ -103,14 +107,26 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
 export default function UserDetail() {
   const { pageUser, postsData } = useLoaderData<typeof loader>();
   const { user } = useOutletContext<ContextType>();
+  const isOwnProfile = user && user.id === pageUser.id;
 
   return (
     <div className="p-8">
       <div className="w-full max-w-6xl mx-auto space-y-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold mb-4">{pageUser.name}</h1>
-          {pageUser.bio && <p className="text-gray-600 mb-2">{pageUser.bio}</p>}
-          {pageUser.email && <p className="text-gray-500 text-sm">Email: {pageUser.email}</p>}
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold mb-4">{pageUser.name}</h1>
+              {pageUser.bio && <p className="text-gray-600 mb-2">{pageUser.bio}</p>}
+              {pageUser.email && <p className="text-gray-500 text-sm">Email: {pageUser.email}</p>}
+            </div>
+            {isOwnProfile && (
+              <Link to={`/users/${pageUser.id}/edit`}>
+                <Button variant="ghost" size="icon">
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              </Link>
+            )}
+          </div>
         </div>
 
         <div>

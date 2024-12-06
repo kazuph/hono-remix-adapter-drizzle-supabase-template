@@ -26,6 +26,12 @@ export function Header({ user }: HeaderProps) {
                 <span className="text-sm">{user.email}</span>
               </button>
               <div className="absolute right-0 mt-2 w-48 py-2 bg-white rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200">
+                <Link
+                  to={`/users/${user.id}/edit`}
+                  className="block px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  プロフィール編集
+                </Link>
                 <form action="/logout" method="post">
                   <button type="submit" className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100">
                     ログアウト
