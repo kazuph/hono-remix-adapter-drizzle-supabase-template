@@ -1,6 +1,7 @@
 import { zValidator } from "@hono/zod-validator";
 import { and, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import { requireAuth } from "server/middleware/auth";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
 import { getDb } from "../db";
@@ -44,6 +45,7 @@ const app = new Hono<{ Bindings: Env }>()
   })
   .patch(
     "/:userId",
+    requireAuth,
     zValidator(
       "json",
       z.object({
@@ -118,6 +120,7 @@ const app = new Hono<{ Bindings: Env }>()
   })
   .post(
     "/",
+    requireAuth,
     zValidator(
       "json",
       z.object({

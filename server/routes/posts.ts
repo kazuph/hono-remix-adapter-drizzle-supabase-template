@@ -4,6 +4,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
 import { getDb } from "../db";
+import { requireAuth } from "../middleware/auth";
 
 const app = new Hono<{ Bindings: Env }>()
   .get("/", async (c) => {
@@ -51,6 +52,7 @@ const app = new Hono<{ Bindings: Env }>()
   })
   .post(
     "/",
+    requireAuth,
     zValidator(
       "json",
       z.object({
