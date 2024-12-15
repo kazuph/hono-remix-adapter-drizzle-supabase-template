@@ -1,0 +1,11 @@
+- 常に英語で考えて、日本語で回答して。ですがコーディングはすべて英語で行って。
+- タスク完了時に絵文字付きのコミットメッセージを考えて, git commitの実行を提案して
+- 依頼に対して実行計画を立ててからコーディングをスタートして
+- HonoによるAPIの実装はエンドポイントをすべてメソッドチェーンで記述し、クライアントでは必ずhc(Hono RPC Clientを利用して型安全にAPIを利用して)
+- RemixとHonoの構成の場合は、HonoでSetしたCookieをRemixのloaderで返却するようにして。またRemixが受け取ったCookieやheaderは基本的にそのままHonoのhcに渡してHono側で利用できるようにして
+- Honoのcrsfを有効にするためには、Remixのloaderでheaderを渡す必要があります(csrf)
+- Honoは基本的には同じドメインからのアクセスのみを受け付けるようにします(cors)
+- Honoは/api以下のみを管理
+- 認証後はJWTを利用して更新処理を保護します
+- RemixのloaderではgetUserを利用して認証が必要なページは保護します
+- DBのスキーマのidは基本的にuuidv7のみを利用します（時系列情報を含む必要があります）。またPostgreSQLの場合はuuid型を必ず利用します
