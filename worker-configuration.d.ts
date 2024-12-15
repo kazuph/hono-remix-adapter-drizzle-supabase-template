@@ -6,4 +6,5 @@ interface Env {
 	SUPABASE_ANON_KEY: string;
 	PUBLIC_URL: string;
 	JWT_SECRET: string;
+	API_TOKEN: string;
 }

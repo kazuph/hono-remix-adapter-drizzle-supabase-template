@@ -9,3 +9,4 @@
 - 認証後はJWTを利用して更新処理を保護します
 - RemixのloaderではgetUserを利用して認証が必要なページは保護します
 - DBのスキーマのidは基本的にuuidv7のみを利用します（時系列情報を含む必要があります）。またPostgreSQLの場合はuuid型を必ず利用します
+- process.envは使えません。Remixレイヤーではc.cloudflare.envを利用して環境変数を取得し、Honoレイヤーではc.envを利用して環境変数を取得します

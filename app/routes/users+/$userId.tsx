@@ -70,7 +70,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     data: { user },
   } = await client.auth.getUser();
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
 
   const userResponse = await apiClient.api.users[":userId"].$get({
     param: { userId },

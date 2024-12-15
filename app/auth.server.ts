@@ -36,6 +36,30 @@ export async function createSessionCookie(context: any, value: any) {
   return cookie;
 }
 
+export const signInWithGoogle = async (request: Request, context: AppLoadContext) => {
+  const supabase = createSupabaseServerClient(request, context);
+  const { data, error } = await supabase.client.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${new URL(request.url).origin}/auth/callback`,
+    },
+  });
+
+  if (error) {
+    return json({
+      error: error.message,
+      data: null,
+      headers: {},
+    });
+  }
+
+  return json({
+    error: null,
+    data: { url: data.url },
+    headers: supabase.headers,
+  });
+};
+
 export const signOut = async (request: Request, c: AppLoadContext, successRedirectPath: string) => {
   const supabase = createSupabaseServerClient(request, c);
   const { error } = await supabase.client.auth.signOut();

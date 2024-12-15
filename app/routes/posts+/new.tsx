@@ -37,7 +37,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
     return json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   const response = await apiClient.api.posts.$post({
     json: {
       title,

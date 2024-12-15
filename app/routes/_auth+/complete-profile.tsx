@@ -36,7 +36,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const bio = formData.get("bio") as string;
 
   // APIクライアントを使用してユーザーを作成
-  const client = getApiClient(request);
+  const client = getApiClient(context, request);
   const userData: InsertUser = {
     id: user.id,
     name: name || user.user_metadata.full_name,

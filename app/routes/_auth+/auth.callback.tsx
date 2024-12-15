@@ -20,7 +20,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
 
     try {
       // APIクライアントを使用してユーザーの存在確認
-      const client = getApiClient(request);
+      const client = getApiClient(context, request);
       console.log("🔍 Checking user existence for ID:", user.id);
       const response = await client.api.users.$get({
         query: { id: user.id },

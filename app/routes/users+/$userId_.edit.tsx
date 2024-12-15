@@ -45,7 +45,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Error("Unauthorized");
   }
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   const userResponse = await apiClient.api.users[":userId"].$get({
     param: { userId },
   });
@@ -77,7 +77,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     throw new Error("Unauthorized");
   }
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   const response = await apiClient.api.users[":userId"].$patch({
     param: { userId },
     json: { name, bio },

@@ -16,7 +16,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     console.error("Auth error:", error);
   }
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   let users = [];
   try {
     const usersResponse = await apiClient.api.users.$get();

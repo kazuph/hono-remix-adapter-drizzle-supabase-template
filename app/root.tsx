@@ -21,7 +21,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const authUser = await getUser(request, context);
 
   // ユーザー一覧を取得
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   const [usersResponse, postsResponse] = await Promise.all([apiClient.api.users.$get(), apiClient.api.posts.$get()]);
 
   const [usersData, postsData] = await Promise.all([usersResponse.json(), postsResponse.json()]);

@@ -1,6 +1,6 @@
 import { Hono } from "hono";
+import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
-import { csrf } from "hono/csrf";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
 import { sessionMiddleware } from "./middleware/session";
@@ -50,12 +50,10 @@ app.use(
 // ビルトインのロガーミドルウェア
 app.use("/api/*", logger());
 
-// CSRF
+// Bearer認証（すべてのAPIエンドポイントに対して）
 app.use("/api/*", async (c, next) => {
-  const csrfMiddlewareHandler = csrf({
-    origin: c.env.PUBLIC_URL,
-  });
-  return csrfMiddlewareHandler(c, next);
+  const authMiddleware = bearerAuth({ token: c.env.API_TOKEN });
+  return authMiddleware(c, next);
 });
 
 // CORS
