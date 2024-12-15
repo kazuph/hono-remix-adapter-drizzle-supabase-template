@@ -4,4 +4,6 @@ interface Env {
 	DATABASE_URL: string;
 	SUPABASE_URL: string;
 	SUPABASE_ANON_KEY: string;
+	PUBLIC_URL: string;
+	JWT_SECRET: string;
 }
