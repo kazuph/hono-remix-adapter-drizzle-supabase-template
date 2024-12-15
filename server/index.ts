@@ -1,10 +1,14 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { csrf } from "hono/csrf";
+import { loggerMiddleware } from "./middleware/logger";
 import { sessionMiddleware } from "./middleware/session";
 import api from "./routes/_index";
 
 const app = new Hono<{ Bindings: Env }>();
+
+// ロギングミドルウェア（最初に配置して全てのリクエストをログ）
+app.use("/api/*", loggerMiddleware);
 
 // CSRF
 app.use("/api/*", async (c, next) => {
