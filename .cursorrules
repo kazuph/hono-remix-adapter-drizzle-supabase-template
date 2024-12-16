@@ -11,3 +11,5 @@
 - DBのスキーマのidは基本的にuuidv7のみを利用します（時系列情報を含む必要があります）。またPostgreSQLの場合はuuid型を必ず利用します
 - process.envは使えません。Remixレイヤーではc.cloudflare.envを利用して環境変数を取得し、Honoレイヤーではc.envを利用して環境変数を取得します
 - git diff等を確認する場合は、ページャーが発動することを防ぐためにgit --no-pager log や git --no-pager diffを利用してください
+- Remixでレスポンスにjsonを使うのは非推奨なので見つけたら削除して
+- データベースのテーブル名は基本的に複数形で命名して

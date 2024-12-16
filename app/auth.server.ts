@@ -1,5 +1,4 @@
-import { json } from "@remix-run/cloudflare";
-import type { AppLoadContext } from "@remix-run/cloudflare";
+import { type AppLoadContext } from "@remix-run/cloudflare";
 import { createCookie } from "@remix-run/cloudflare";
 import { jwt, sign } from "hono/jwt";
 import { createSupabaseServerClient } from "~/supabase.server";
@@ -85,10 +84,10 @@ export const signOut = async (request: Request, c: AppLoadContext, successRedire
     headers.append("Set-Cookie", await cookie.serialize("", { expires: new Date(0) }));
   }
 
-  return json({
+  return {
     ok: !error ? true : false,
     data: { url: successRedirectPath },
     error: error ? error.message : "",
     headers,
-  });
+  };
 };

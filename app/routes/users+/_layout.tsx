@@ -1,4 +1,4 @@
-import { type LoaderFunctionArgs, json } from "@remix-run/cloudflare";
+import { type LoaderFunctionArgs } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData } from "@remix-run/react";
 import { getApiClient } from "~/lib/client";
 import type { SelectUser } from "~/schema";
@@ -33,7 +33,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     console.error("Failed to fetch users:", error);
   }
 
-  return json({ user, users });
+  return { user, users };
 }
 
 export default function UsersLayout() {

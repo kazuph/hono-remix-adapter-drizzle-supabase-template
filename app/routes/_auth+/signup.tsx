@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type ActionFunctionArgs, redirect } from "@remix-run/cloudflare";
 import { Form } from "@remix-run/react";
 import { signInWithGoogle } from "~/auth.server";
 
@@ -12,10 +12,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
     if (!error && data?.url) {
       return redirect(data.url, { headers });
     }
-    return json({ error: error || "アカウント作成に失敗しました" }, { status: 400 });
+    return { error: error || "アカウント作成に失敗しました" };
   }
 
-  return json({ error: "Invalid provider" }, { status: 400 });
+  return { error: "Invalid provider" };
 }
 
 export default function Signup() {

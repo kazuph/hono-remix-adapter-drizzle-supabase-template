@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
 import { Form, useNavigate } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
@@ -34,7 +34,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   } = await client.auth.getUser();
 
   if (!user) {
-    return json({ error: "Unauthorized" }, { status: 401 });
+    return { error: "Unauthorized" };
   }
 
   const apiClient = getApiClient(context, request);
@@ -50,7 +50,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const data = await response.json();
 
   if (!response.ok || isErrorResponse(data)) {
-    return json({ error: isErrorResponse(data) ? data.error : "Failed to create post" }, { status: response.status });
+    return { error: isErrorResponse(data) ? data.error : "Failed to create post" };
   }
 
   return redirect("/");
@@ -66,7 +66,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     return redirect("/login");
   }
 
-  return json({});
+  return {};
 }
 
 export default function NewPost() {

@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
-import { json, redirect } from "@remix-run/cloudflare";
+import { redirect } from "@remix-run/cloudflare";
 import { Form, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
@@ -85,7 +85,7 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
 
   const result: ApiUserResponse = await response.json();
   if (!response.ok || isErrorResponse(result)) {
-    return json({ error: isErrorResponse(result) ? result.error : "Failed to update profile" }, { status: 400 });
+    return { error: isErrorResponse(result) ? result.error : "Failed to update profile" };
   }
 
   return redirect(`/users/${userId}`);

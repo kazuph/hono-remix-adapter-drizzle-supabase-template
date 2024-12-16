@@ -1,4 +1,4 @@
-import { type ActionFunctionArgs, type LoaderFunctionArgs, json, redirect } from "@remix-run/cloudflare";
+import { type ActionFunctionArgs, type LoaderFunctionArgs, redirect } from "@remix-run/cloudflare";
 import { Form, useLoaderData } from "@remix-run/react";
 import { getApiClient } from "~/lib/client";
 import type { InsertUser } from "~/schema";
@@ -14,11 +14,11 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     return redirect("/login");
   }
 
-  return json({
+  return {
     email: user.email,
     name: user.user_metadata.full_name || "",
     avatar_url: user.user_metadata.avatar_url,
-  });
+  };
 }
 
 export async function action({ request, context }: ActionFunctionArgs) {
@@ -57,7 +57,7 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   if (!response.ok) {
     console.error("❌ Failed to save user data");
-    return json({ error: "ユーザー情報の保存に失敗しました" }, { status: 400 });
+    return { error: "ユーザー情報の保存に失敗しました" };
   }
 
   console.log("✅ User data saved successfully");
