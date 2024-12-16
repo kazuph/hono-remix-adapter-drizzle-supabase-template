@@ -12,11 +12,6 @@ type ContextType = {
 export default function Index() {
   const { user, users, posts } = useOutletContext<ContextType>();
 
-  // 投稿を日付の降順でソート
-  const sortedPosts = [...(posts || [])].sort((a, b) => {
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
-  });
-
   // ユーザーIDからユーザー情報を取得する関数
   const getUserById = (userId: string) => {
     return users?.find((user) => user.id === userId);
@@ -46,8 +41,8 @@ export default function Index() {
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-xl font-semibold mb-4">投稿一覧</h2>
         <div className="space-y-4">
-          {sortedPosts.length > 0 ? (
-            sortedPosts.map((post) => {
+          {posts.length > 0 ? (
+            posts.map((post) => {
               const postUser = getUserById(post.user_id);
               return (
                 <div key={post.id} className="border-b pb-4">

@@ -1,5 +1,5 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
@@ -36,7 +36,8 @@ const app = new Hono<{ Bindings: Env }>()
         })
         .from(posts)
         .leftJoin(users, eq(posts.user_id, users.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(posts.created_at));
 
       return c.json(result);
     } catch (error) {
