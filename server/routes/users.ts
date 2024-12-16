@@ -23,7 +23,26 @@ const userUpdateSchema = z.object({
 const app = new Hono<AppEnv>()
   .get("/", async (c) => {
     try {
-      const result = await c.var.db.select().from(users);
+      const email = c.req.query("email");
+      const currentUserId = c.req.query("currentUserId") ?? null;
+
+      const result = await rlsQuery(c.var.db, currentUserId, async (tx) => {
+        const userList = await tx
+          .select({
+            id: users.id,
+            name: users.name,
+            avatar_url: users.avatar_url,
+            // email and bio will be null for other users due to RLS
+            email: users.email,
+            bio: users.bio,
+            created_at: users.created_at,
+            updated_at: users.updated_at,
+          })
+          .from(users)
+          .where(email ? eq(users.email, email) : undefined);
+        return userList;
+      });
+
       return c.json(result);
     } catch (error) {
       return handleError(c, error);
@@ -32,13 +51,30 @@ const app = new Hono<AppEnv>()
   .get("/:userId", async (c) => {
     try {
       const userId = c.req.param("userId");
-      const result = await c.var.db.select().from(users).where(eq(users.id, userId));
+      const currentUserId = c.req.query("currentUserId") ?? null;
 
-      if (result.length === 0) {
-        throw new NotFoundError("User");
-      }
+      const result = await rlsQuery(c.var.db, currentUserId, async (tx) => {
+        const user = await tx
+          .select({
+            id: users.id,
+            name: users.name,
+            avatar_url: users.avatar_url,
+            // email and bio will be null for other users due to RLS
+            email: users.email,
+            bio: users.bio,
+            created_at: users.created_at,
+            updated_at: users.updated_at,
+          })
+          .from(users)
+          .where(eq(users.id, userId));
 
-      return c.json(result[0]);
+        if (user.length === 0) {
+          throw new NotFoundError("User");
+        }
+        return user[0];
+      });
+
+      return c.json(result);
     } catch (error) {
       return handleError(c, error);
     }
@@ -47,13 +83,30 @@ const app = new Hono<AppEnv>()
     try {
       const userId = c.req.param("userId");
       const data = await c.req.json();
-      const result = await c.var.db.update(users).set(data).where(eq(users.id, userId)).returning();
+      const user = c.get("user");
 
-      if (result.length === 0) {
-        throw new NotFoundError("User");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
 
-      return c.json(result[0]);
+      const result = await rlsQuery(c.var.db, user.id, async (tx) => {
+        const updated = await tx.update(users).set(data).where(eq(users.id, userId)).returning({
+          id: users.id,
+          name: users.name,
+          avatar_url: users.avatar_url,
+          email: users.email,
+          bio: users.bio,
+          created_at: users.created_at,
+          updated_at: users.updated_at,
+        });
+
+        if (updated.length === 0) {
+          throw new NotFoundError("User");
+        }
+        return updated[0];
+      });
+
+      return c.json(result);
     } catch (error) {
       return handleError(c, error);
     }
@@ -61,29 +114,24 @@ const app = new Hono<AppEnv>()
   .get("/:userId/posts", async (c) => {
     try {
       const userId = c.req.param("userId");
-      const currentUserId = c.req.query("currentUserId");
-      const isPublicOnly = c.req.query("publicOnly") === "true";
+      const currentUserId = c.req.query("currentUserId") ?? null;
 
-      const conditions = [eq(posts.user_id, userId)];
-
-      if (currentUserId !== userId) {
-        conditions.push(eq(posts.is_public, true));
-      }
-
-      const result = await c.var.db
-        .select({
-          id: posts.id,
-          title: posts.title,
-          content: posts.content,
-          created_at: posts.created_at,
-          updated_at: posts.updated_at,
-          user_id: posts.user_id,
-          is_public: posts.is_public,
-          user_name: users.name,
-        })
-        .from(posts)
-        .leftJoin(users, eq(posts.user_id, users.id))
-        .where(and(...conditions));
+      const result = await rlsQuery(c.var.db, currentUserId, async (tx) => {
+        return await tx
+          .select({
+            id: posts.id,
+            title: posts.title,
+            content: posts.content,
+            created_at: posts.created_at,
+            updated_at: posts.updated_at,
+            user_id: posts.user_id,
+            is_public: posts.is_public,
+            user_name: users.name,
+          })
+          .from(posts)
+          .leftJoin(users, eq(posts.user_id, users.id))
+          .where(eq(posts.user_id, userId));
+      });
 
       return c.json(result);
     } catch (error) {
@@ -93,20 +141,33 @@ const app = new Hono<AppEnv>()
   .post("/", requireAuth, zValidator("json", userCreateSchema), async (c) => {
     try {
       const data = await c.req.json();
+      const user = c.get("user");
 
-      // Check if email already exists
-      const emailExists = await c.var.db
-        .select({ id: users.id })
-        .from(users)
-        .where(eq(users.email, data.email))
-        .limit(1);
-
-      if (emailExists.length > 0) {
-        throw new ValidationError("Email already exists");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const result = await c.var.db.insert(users).values(data).returning();
-      return c.json(result[0]);
+      const result = await rlsQuery(c.var.db, user.id, async (tx) => {
+        // Check if email already exists
+        const emailExists = await tx.select({ id: users.id }).from(users).where(eq(users.email, data.email)).limit(1);
+
+        if (emailExists.length > 0) {
+          throw new ValidationError("Email already exists");
+        }
+
+        const inserted = await tx.insert(users).values(data).returning({
+          id: users.id,
+          name: users.name,
+          avatar_url: users.avatar_url,
+          email: users.email,
+          bio: users.bio,
+          created_at: users.created_at,
+          updated_at: users.updated_at,
+        });
+        return inserted[0];
+      });
+
+      return c.json(result);
     } catch (error) {
       return handleError(c, error);
     }
