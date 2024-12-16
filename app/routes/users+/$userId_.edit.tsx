@@ -19,20 +19,16 @@ interface ApiUser {
   updated_at: string;
 }
 
-interface ErrorResponse {
-  error: string;
-  details?: string;
+interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
 }
 
-type ApiUserResponse = ApiUser | ErrorResponse;
+type ApiUserResponse = ApiUser | ApiError;
 
-interface ApiErrorResponse {
-  error: string;
-  details?: string;
-}
-
-function isErrorResponse(response: any): response is ErrorResponse {
-  return "error" in response;
+function isApiError(response: unknown): response is ApiError {
+  return typeof response === "object" && response !== null && "code" in response;
 }
 
 export async function loader({ request, context, params }: LoaderFunctionArgs) {
@@ -54,13 +50,13 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const userResponse = await apiClient.api.users[":userId"].$get({
     param: { userId },
   });
-  const userData: ApiUserResponse = await userResponse.json();
+  const userData: unknown = await userResponse.json();
 
-  if (isErrorResponse(userData)) {
-    throw new Error("User not found");
+  if (isApiError(userData)) {
+    throw new Error(userData.message);
   }
 
-  return { pageUser: userData };
+  return { pageUser: userData as ApiUser };
 }
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
@@ -89,14 +85,17 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
       json: { name, bio },
     });
 
+    const responseData: unknown = await response.json();
+
     if (!response.ok) {
-      const errorData = (await response.json()) as ApiErrorResponse;
-      return { error: errorData.error || "Failed to update profile" };
+      if (isApiError(responseData)) {
+        return { error: responseData.message };
+      }
+      return { error: "Failed to update profile" };
     }
 
-    const result: ApiUserResponse = await response.json();
-    if (isErrorResponse(result)) {
-      return { error: result.error };
+    if (isApiError(responseData)) {
+      return { error: responseData.message };
     }
 
     return redirect(`/users/${userId}`);

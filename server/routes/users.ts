@@ -4,7 +4,21 @@ import { Hono } from "hono";
 import { requireAuth } from "server/middleware/auth";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
+import { NotFoundError, ValidationError, handleError } from "../utils/error";
 import type { AppEnv } from "./_index";
+
+const userCreateSchema = z.object({
+  id: z.string().uuid("Invalid user ID format"),
+  name: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+  email: z.string().email("Invalid email format"),
+  bio: z.string().max(500, "Bio must be less than 500 characters").nullable().optional(),
+  avatar_url: z.string().url("Invalid URL format").nullable().optional(),
+});
+
+const userUpdateSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+  bio: z.string().max(500, "Bio must be less than 500 characters").nullable(),
+});
 
 const app = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -12,12 +26,7 @@ const app = new Hono<AppEnv>()
       const result = await c.var.db.select().from(users);
       return c.json(result);
     } catch (error) {
-      console.error("Detailed error in /api/users:", {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return c.text(`error code: ${error instanceof Error ? error.message : "1042"}`, 500);
+      return handleError(c, error);
     }
   })
   .get("/:userId", async (c) => {
@@ -26,54 +35,29 @@ const app = new Hono<AppEnv>()
       const result = await c.var.db.select().from(users).where(eq(users.id, userId));
 
       if (result.length === 0) {
-        return c.json({ error: "User not found" }, 404);
+        throw new NotFoundError("User");
       }
 
       return c.json(result[0]);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      return c.json(
-        {
-          error: "Failed to fetch user",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .patch(
-    "/:userId",
-    requireAuth,
-    zValidator(
-      "json",
-      z.object({
-        name: z.string(),
-        bio: z.string().nullable(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const userId = c.req.param("userId");
-        const data = await c.req.json();
-        const result = await c.var.db.update(users).set(data).where(eq(users.id, userId)).returning();
+  .patch("/:userId", requireAuth, zValidator("json", userUpdateSchema), async (c) => {
+    try {
+      const userId = c.req.param("userId");
+      const data = await c.req.json();
+      const result = await c.var.db.update(users).set(data).where(eq(users.id, userId)).returning();
 
-        if (result.length === 0) {
-          return c.json({ error: "User not found" }, 404);
-        }
-
-        return c.json(result[0]);
-      } catch (error) {
-        console.error("Error updating user:", error);
-        return c.json(
-          {
-            error: "Failed to update user",
-            details: error instanceof Error ? error.message : String(error),
-          },
-          500,
-        );
+      if (result.length === 0) {
+        throw new NotFoundError("User");
       }
-    },
-  )
+
+      return c.json(result[0]);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  })
   .get("/:userId/posts", async (c) => {
     try {
       const userId = c.req.param("userId");
@@ -103,39 +87,29 @@ const app = new Hono<AppEnv>()
 
       return c.json(result);
     } catch (error) {
-      console.error("Error fetching user posts:", error);
-      return c.json(
-        {
-          error: "Failed to fetch user posts",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .post(
-    "/",
-    requireAuth,
-    zValidator(
-      "json",
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        email: z.string().email(),
-        bio: z.string().nullable().optional(),
-        avatar_url: z.string().nullable().optional(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const data = await c.req.json();
-        const result = await c.var.db.insert(users).values(data).returning();
-        return c.json(result[0]);
-      } catch (error) {
-        console.error(error);
-        return c.json({ error: "Failed to create user" }, 500);
+  .post("/", requireAuth, zValidator("json", userCreateSchema), async (c) => {
+    try {
+      const data = await c.req.json();
+
+      // Check if email already exists
+      const emailExists = await c.var.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, data.email))
+        .limit(1);
+
+      if (emailExists.length > 0) {
+        throw new ValidationError("Email already exists");
       }
-    },
-  );
+
+      const result = await c.var.db.insert(users).values(data).returning();
+      return c.json(result[0]);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
 
 export default app;

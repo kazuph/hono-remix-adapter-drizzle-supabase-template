@@ -4,7 +4,15 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
 import { requireAuth } from "../middleware/auth";
+import { NotFoundError, handleError } from "../utils/error";
 import type { AppEnv } from "./_index";
+
+const postSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
+  content: z.string().min(1, "Content is required").max(10000, "Content must be less than 10000 characters"),
+  user_id: z.string().uuid("Invalid user ID format"),
+  is_public: z.boolean().default(false),
+});
 
 const app = new Hono<AppEnv>()
   .get("/", async (c) => {
@@ -40,38 +48,25 @@ const app = new Hono<AppEnv>()
 
       return c.json(result);
     } catch (error) {
-      console.error("Error fetching posts:", error);
-      return c.json(
-        {
-          error: "Failed to fetch posts",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .post(
-    "/",
-    requireAuth,
-    zValidator(
-      "json",
-      z.object({
-        title: z.string(),
-        content: z.string(),
-        user_id: z.string(),
-        is_public: z.boolean().optional(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const data = await c.req.json();
-        const result = await c.var.db.insert(posts).values(data).returning();
-        return c.json(result[0]);
-      } catch (error) {
-        console.error(error);
-        return c.json({ error: "Failed to create post" }, 500);
+  .post("/", requireAuth, zValidator("json", postSchema), async (c) => {
+    try {
+      const data = await c.req.json();
+
+      // Check if user exists
+      const userExists = await c.var.db.select({ id: users.id }).from(users).where(eq(users.id, data.user_id)).limit(1);
+
+      if (userExists.length === 0) {
+        throw new NotFoundError("User");
       }
-    },
-  );
+
+      const result = await c.var.db.insert(posts).values(data).returning();
+      return c.json(result[0]);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
 
 export default app;

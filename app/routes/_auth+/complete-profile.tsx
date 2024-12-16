@@ -37,13 +37,13 @@ export async function action({ request, context }: ActionFunctionArgs) {
 
   // APIクライアントを使用してユーザーを作成
   const client = getApiClient(context, request);
-  const userData: InsertUser = {
+  const userData = {
     id: user.id,
     name: name || user.user_metadata.full_name,
     email: user.email!,
     bio: bio || null,
     avatar_url: user.user_metadata.avatar_url || null,
-  };
+  } satisfies InsertUser;
 
   console.log("📝 Saving user data:", userData);
   const response = await client.api.users.$post({
