@@ -15,3 +15,52 @@
 - データベースのテーブル名は基本的に複数形で命名して
 - supabase/Postgresを利用している場合はRLSを利用してデータの保護を行ってください。ただし、drizzleは自動でRLSのスキーマからSQLを生成できないので、pnpm db:generate:blankを実行してから、からのsqlファイルの中身にRLSのSQLを記述してください
 - gitで複数行のコミットメッセージが必要な場合は$ git commit -F- << EOMを利用してください
+
+# DB, 特にsupabaseでRLSを利用する場合
+1. **Postgresの接続の性質**:
+- Direct Connection (port 5432) では、接続時にスーパーユーザー権限で接続されるため、単純な `role: 'anon'` の指定ではRLSが効きません
+- Pooled Connection (port 6543) でも、単純なロール指定だけではRLSのコンテキストが正しく設定されません
+
+2. **正しいアプローチ**:
+```typescript
+// 1. Pooled Connection URLを使用
+const client = postgres(process.env.DATABASE_URL, {
+  prepare: false  // プール接続では必須
+});
+
+const db = drizzle(client);
+
+// 2. トランザクション内でロールとコンテキストを設定
+export const rlsQuery = async <T>(
+  userId: string | null,  // nullの場合はanon
+  txFunc: QueryInTransaction<T>
+) => {
+  return await db.transaction(async (tx) => {
+    if (userId) {
+      // authenticated ユーザーの場合
+      await tx.execute(sql`
+        set session role authenticated;
+        select set_config('request.jwt.claim.sub', ${userId}, true);
+      `);
+    } else {
+      // anon ユーザーの場合
+      await tx.execute(sql`set session role anon;`);
+    }
+
+    return await txFunc(tx);
+  });
+};
+```
+
+3. **使用例**:
+```typescript
+// 匿名ユーザーとしてのクエリ
+const publicPosts = await rlsQuery(null, async (tx) => {
+  return await tx.select().from(posts).where(eq(posts.is_public, true));
+});
+
+// 認証済みユーザーとしてのクエリ
+const userPosts = await rlsQuery(userId, async (tx) => {
+  return await tx.select().from(posts);
+});
+```

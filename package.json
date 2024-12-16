@@ -16,7 +16,7 @@
     "typegen": "wrangler types",
     "cf-typegen": "wrangler types",
     "db:generate": "drizzle-kit generate",
-    "db:generate:blank": "drizzle-kit generate:pg --custom",
+    "db:generate:blank": "drizzle-kit generate --custom",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:migrate": "drizzle-kit migrate",
