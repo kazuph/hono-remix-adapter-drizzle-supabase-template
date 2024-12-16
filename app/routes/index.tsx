@@ -3,10 +3,15 @@ import { Button } from "~/components/ui/button";
 import type { loader } from "~/root";
 import type { SelectPost, SelectUser } from "~/schema";
 
+type ApiPost = Omit<SelectPost, "created_at" | "updated_at"> & {
+  created_at: string;
+  updated_at: string;
+};
+
 type ContextType = {
   user: SelectUser | null;
   users: SelectUser[];
-  posts: (SelectPost & { user_name: string })[];
+  posts: (ApiPost & { user_name: string })[];
 };
 
 export default function Index() {
@@ -18,12 +23,12 @@ export default function Index() {
   };
 
   // 日付フォーマット用の関数
-  const formatDate = (date: Date) => {
+  const formatDate = (date: string) => {
     return new Intl.DateTimeFormat("ja-JP", {
       year: "numeric",
       month: "numeric",
       day: "numeric",
-    }).format(date);
+    }).format(new Date(date));
   };
 
   return (
