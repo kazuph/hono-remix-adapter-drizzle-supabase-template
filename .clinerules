@@ -14,3 +14,4 @@
 - Remixでレスポンスにjsonを使うのは非推奨なので見つけたら削除して
 - データベースのテーブル名は基本的に複数形で命名して
 - supabase/Postgresを利用している場合はRLSを利用してデータの保護を行ってください。ただし、drizzleは自動でRLSのスキーマからSQLを生成できないので、pnpm db:generate:blankを実行してから、からのsqlファイルの中身にRLSのSQLを記述してください
+- gitで複数行のコミットメッセージが必要な場合は$ git commit -F- << EOMを利用してください
