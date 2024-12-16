@@ -10,7 +10,20 @@ export async function getUser(request: Request, context: AppLoadContext) {
   const supabase = createSupabaseServerClient(request, context);
   const {
     data: { user },
+    error,
   } = await supabase.client.auth.getUser();
+
+  console.log("🔍 getUser result:", {
+    user,
+    error,
+    cookies: request.headers.get("Cookie"),
+  });
+
+  if (error) {
+    console.error("❌ getUser error:", error);
+    return null;
+  }
+
   return user;
 }
 
@@ -36,28 +49,25 @@ export async function createSessionCookie(context: any, value: any) {
   return cookie;
 }
 
-export const signInWithGoogle = async (request: Request, context: AppLoadContext) => {
-  const supabase = createSupabaseServerClient(request, context);
+export const signInWithGoogle = async (request: Request, c: AppLoadContext, successRedirectPath?: string) => {
+  const supabase = createSupabaseServerClient(request, c);
+
+  const url = new URL(request.url);
+  const redirectTo = successRedirectPath || `${url.origin}/auth/callback`;
+
   const { data, error } = await supabase.client.auth.signInWithOAuth({
     provider: "google",
     options: {
-      redirectTo: `${new URL(request.url).origin}/auth/callback`,
+      redirectTo,
     },
   });
 
-  if (error) {
-    return json({
-      error: error.message,
-      data: null,
-      headers: {},
-    });
-  }
-
-  return json({
-    error: null,
-    data: { url: data.url },
+  return {
+    ok: !error && data ? true : false,
+    data: data,
+    error: error && !data ? error.message : "",
     headers: supabase.headers,
-  });
+  };
 };
 
 export const signOut = async (request: Request, c: AppLoadContext, successRedirectPath: string) => {

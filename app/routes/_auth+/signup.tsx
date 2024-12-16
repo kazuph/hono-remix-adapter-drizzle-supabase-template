@@ -7,11 +7,12 @@ export async function action({ request, context }: ActionFunctionArgs) {
   const provider = formData.get("provider");
 
   if (provider === "google") {
-    const data = await signInWithGoogle(request, context);
-    if (!data.error && data.data?.url) {
-      return redirect(data.data.url, { headers: data.headers });
+    const { error, data, headers } = await signInWithGoogle(request, context);
+
+    if (!error && data?.url) {
+      return redirect(data.url, { headers });
     }
-    return json({ error: data.error || "アカウント作成に失敗しました" }, { status: 400 });
+    return json({ error: error || "アカウント作成に失敗しました" }, { status: 400 });
   }
 
   return json({ error: "Invalid provider" }, { status: 400 });
@@ -21,7 +22,7 @@ export default function Signup() {
   return (
     <>
       <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">アカウント作成</h2>
-      <Form method="post" className="mt-8 space-y-6">
+      <Form method="post" action="/signup" className="mt-8 space-y-6">
         <input type="hidden" name="provider" value="google" />
         <div>
           <button
