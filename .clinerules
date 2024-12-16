@@ -1,5 +1,5 @@
 - 常に英語で考えて、日本語で回答して。ですがコーディングはすべて英語で行って。
-- タスク完了時に絵文字付きのコミットメッセージを考えて, git commitの実行を提案して
+- タスク完了時にまずtestかbuildをして、それが通っていたら、絵文字付きのコミットメッセージを考えて git commitの実行を提案して
 - 依頼に対して実行計画を立ててからコーディングをスタートして
 - HonoによるAPIの実装はエンドポイントをすべてメソッドチェーンで記述し、クライアントでは必ずhc(Hono RPC Clientを利用して型安全にAPIを利用して)
 - RemixとHonoの構成の場合は、HonoでSetしたCookieをRemixのloaderで返却するようにして。またRemixが受け取ったCookieやheaderは基本的にそのままHonoのhcに渡してHono側で利用できるようにして
@@ -10,3 +10,4 @@
 - RemixのloaderではgetUserを利用して認証が必要なページは保護します
 - DBのスキーマのidは基本的にuuidv7のみを利用します（時系列情報を含む必要があります）。またPostgreSQLの場合はuuid型を必ず利用します
 - process.envは使えません。Remixレイヤーではc.cloudflare.envを利用して環境変数を取得し、Honoレイヤーではc.envを利用して環境変数を取得します
+- git diff等を確認する場合は、ページャーが発動することを防ぐためにgit --no-pager log や git --no-pager diffを利用してください
