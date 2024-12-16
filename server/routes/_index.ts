@@ -1,6 +1,6 @@
 import type { User } from "@supabase/supabase-js";
 import { Hono } from "hono";
-import { type Database, db } from "../db";
+import { type Database, db } from "../middleware/db";
 import posts from "./posts";
 import users from "./users";
 

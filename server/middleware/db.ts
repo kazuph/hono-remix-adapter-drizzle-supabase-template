@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { MiddlewareHandler } from "hono";
 import postgres from "postgres";
-import * as schema from "../app/schema";
+import * as schema from "../../app/schema";
 
 type HonoEnv = {
   Bindings: Env;

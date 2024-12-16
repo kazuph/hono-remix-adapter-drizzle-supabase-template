@@ -7,18 +7,23 @@ const COOKIE_NAME = "session";
 
 export async function getUser(request: Request, context: AppLoadContext) {
   const supabase = createSupabaseServerClient(request, context);
+  const cookie = request.headers.get("Cookie");
+
+  // Cookieが存在しない場合は早期リターン
+  if (!cookie?.includes("sb-")) {
+    return null;
+  }
+
   const {
     data: { user },
     error,
   } = await supabase.client.auth.getUser();
 
-  console.log("🔍 getUser result:", {
-    user,
-    error,
-    cookies: request.headers.get("Cookie"),
-  });
-
   if (error) {
+    // セッションエラーの場合は静かに処理
+    if (error.message === "Auth session missing!") {
+      return null;
+    }
     console.error("❌ getUser error:", error);
     return null;
   }
@@ -73,21 +78,10 @@ export const signOut = async (request: Request, c: AppLoadContext, successRedire
   const supabase = createSupabaseServerClient(request, c);
   const { error } = await supabase.client.auth.signOut();
 
-  let headers = new Headers();
-  if (!error) {
-    const cookie = createCookie(COOKIE_NAME, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "strict",
-      path: "/",
-    });
-    headers.append("Set-Cookie", await cookie.serialize("", { expires: new Date(0) }));
-  }
-
   return {
     ok: !error ? true : false,
     data: { url: successRedirectPath },
     error: error ? error.message : "",
-    headers,
+    headers: supabase.headers,
   };
 };
