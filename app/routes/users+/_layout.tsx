@@ -1,6 +1,7 @@
 import { type LoaderFunctionArgs, json } from "@remix-run/cloudflare";
 import { Outlet, useLoaderData } from "@remix-run/react";
 import { getApiClient } from "~/lib/client";
+import type { SelectUser } from "~/schema";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
@@ -17,10 +18,17 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   }
 
   const apiClient = getApiClient(context, request);
-  let users = [];
+  let users: SelectUser[] = [];
   try {
     const usersResponse = await apiClient.api.users.$get();
-    users = await usersResponse.json();
+    const data = await usersResponse.json();
+    if (!("error" in data)) {
+      users = data.map((user) => ({
+        ...user,
+        created_at: new Date(user.created_at),
+        updated_at: new Date(user.updated_at),
+      }));
+    }
   } catch (error) {
     console.error("Failed to fetch users:", error);
   }
