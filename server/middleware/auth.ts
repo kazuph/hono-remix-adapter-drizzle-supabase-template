@@ -11,14 +11,13 @@ export const requireAuth: MiddlewareHandler<{
   const client = createServerClient(c.env.SUPABASE_URL, c.env.SUPABASE_ANON_KEY, {
     cookies: {
       getAll() {
-        // console.log({ cookie: c.req.header("Cookie") });
         return parseCookieHeader(c.req.header("Cookie") ?? "");
       },
-      setAll(cookiesToSet) {},
-    },
-    cookieOptions: {
-      httpOnly: true,
-      secure: true,
+      setAll(cookiesToSet) {
+        cookiesToSet.forEach(({ name, value, options }) =>
+          c.header("Set-Cookie", serializeCookieHeader(name, value, options)),
+        );
+      },
     },
   });
 
@@ -28,17 +27,19 @@ export const requireAuth: MiddlewareHandler<{
       error,
     } = await client.auth.getUser();
 
-    console.log({ user });
-
     if (error || !user) {
-      console.error("Auth Error:", error);
-      return c.json({ error: "Unauthorized", details: error?.message }, 401);
+      return c.json(
+        {
+          error: "Unauthorized",
+          details: error?.message || "No user found",
+        },
+        401,
+      );
     }
 
     c.set("user", user);
     await next();
   } catch (error) {
-    console.error("Auth Error:", error);
     return c.json(
       {
         error: "Unauthorized",

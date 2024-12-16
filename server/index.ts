@@ -3,7 +3,6 @@ import { bearerAuth } from "hono/bearer-auth";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { secureHeaders } from "hono/secure-headers";
-import { sessionMiddleware } from "./middleware/session";
 import api from "./routes/_index";
 
 const app = new Hono<{ Bindings: Env }>();
@@ -52,8 +51,18 @@ app.use("/api/*", logger());
 
 // Bearer認証（すべてのAPIエンドポイントに対して）
 app.use("/api/*", async (c, next) => {
-  const authMiddleware = bearerAuth({ token: c.env.API_TOKEN });
-  return authMiddleware(c, next);
+  try {
+    const authMiddleware = bearerAuth({ token: c.env.API_TOKEN });
+    return await authMiddleware(c, next);
+  } catch (error) {
+    return c.json(
+      {
+        error: "Unauthorized",
+        details: "Invalid or missing API token",
+      },
+      401,
+    );
+  }
 });
 
 // CORS
@@ -63,9 +72,6 @@ app.use("/api/*", async (c, next) => {
   });
   return corsMiddlewareHandler(c, next);
 });
-
-// セッションミドルウェアの設定
-app.use("/api/*", sessionMiddleware());
 
 app.use(async (c, next) => {
   await next();

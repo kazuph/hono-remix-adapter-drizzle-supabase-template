@@ -26,6 +26,11 @@ interface ErrorResponse {
 
 type ApiUserResponse = ApiUser | ErrorResponse;
 
+interface ApiErrorResponse {
+  error: string;
+  details?: string;
+}
+
 function isErrorResponse(response: any): response is ErrorResponse {
   return "error" in response;
 }
@@ -78,17 +83,27 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
   }
 
   const apiClient = getApiClient(context, request);
-  const response = await apiClient.api.users[":userId"].$patch({
-    param: { userId },
-    json: { name, bio },
-  });
+  try {
+    const response = await apiClient.api.users[":userId"].$patch({
+      param: { userId },
+      json: { name, bio },
+    });
 
-  const result: ApiUserResponse = await response.json();
-  if (!response.ok || isErrorResponse(result)) {
-    return { error: isErrorResponse(result) ? result.error : "Failed to update profile" };
+    if (!response.ok) {
+      const errorData = (await response.json()) as ApiErrorResponse;
+      return { error: errorData.error || "Failed to update profile" };
+    }
+
+    const result: ApiUserResponse = await response.json();
+    if (isErrorResponse(result)) {
+      return { error: result.error };
+    }
+
+    return redirect(`/users/${userId}`);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return { error: error instanceof Error ? error.message : "Failed to update profile" };
   }
-
-  return redirect(`/users/${userId}`);
 }
 
 export default function UserEdit() {
