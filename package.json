@@ -4,7 +4,7 @@
   "sideEffects": false,
   "type": "module",
   "scripts": {
-    "build": "remix vite:build",
+    "build": "npm run typecheck && remix vite:build",
     "preview": "pnpm run build && wrangler pages dev",
     "tail": "wrangler pages deployment tail --project-name hono-remix-adapter-drizzle-supabase-app",
     "deploy:pages": "pnpm run build && wrangler pages deploy",

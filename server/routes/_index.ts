@@ -1,8 +1,18 @@
+import type { User } from "@supabase/supabase-js";
 import { Hono } from "hono";
-
+import { type Database, db } from "../db";
 import posts from "./posts";
 import users from "./users";
 
-const app = new Hono<{ Bindings: Env }>().route("/posts", posts).route("/users", users);
+type AppEnv = {
+  Bindings: Env;
+  Variables: {
+    db: Database;
+    user: User | null;
+  };
+};
 
+const app = new Hono<AppEnv>().use("*", db).route("/posts", posts).route("/users", users);
+
+export type { AppEnv };
 export default app;

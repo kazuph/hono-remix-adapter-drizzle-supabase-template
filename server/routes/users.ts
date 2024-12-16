@@ -4,13 +4,12 @@ import { Hono } from "hono";
 import { requireAuth } from "server/middleware/auth";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
-import { getDb } from "../db";
+import type { AppEnv } from "./_index";
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<AppEnv>()
   .get("/", async (c) => {
     try {
-      const db = getDb(c);
-      const result = await db.select().from(users);
+      const result = await c.var.db.select().from(users);
       return c.json(result);
     } catch (error) {
       console.error("Detailed error in /api/users:", {
@@ -24,8 +23,7 @@ const app = new Hono<{ Bindings: Env }>()
   .get("/:userId", async (c) => {
     try {
       const userId = c.req.param("userId");
-      const db = getDb(c);
-      const result = await db.select().from(users).where(eq(users.id, userId));
+      const result = await c.var.db.select().from(users).where(eq(users.id, userId));
 
       if (result.length === 0) {
         return c.json({ error: "User not found" }, 404);
@@ -57,9 +55,7 @@ const app = new Hono<{ Bindings: Env }>()
       try {
         const userId = c.req.param("userId");
         const data = await c.req.json();
-        const db = getDb(c);
-
-        const result = await db.update(users).set(data).where(eq(users.id, userId)).returning();
+        const result = await c.var.db.update(users).set(data).where(eq(users.id, userId)).returning();
 
         if (result.length === 0) {
           return c.json({ error: "User not found" }, 404);
@@ -80,7 +76,6 @@ const app = new Hono<{ Bindings: Env }>()
   )
   .get("/:userId/posts", async (c) => {
     try {
-      const db = getDb(c);
       const userId = c.req.param("userId");
       const currentUserId = c.req.query("currentUserId");
       const isPublicOnly = c.req.query("publicOnly") === "true";
@@ -91,7 +86,7 @@ const app = new Hono<{ Bindings: Env }>()
         conditions.push(eq(posts.is_public, true));
       }
 
-      const result = await db
+      const result = await c.var.db
         .select({
           id: posts.id,
           title: posts.title,
@@ -134,8 +129,7 @@ const app = new Hono<{ Bindings: Env }>()
     async (c) => {
       try {
         const data = await c.req.json();
-        const db = getDb(c);
-        const result = await db.insert(users).values(data).returning();
+        const result = await c.var.db.insert(users).values(data).returning();
         return c.json(result[0]);
       } catch (error) {
         console.error(error);

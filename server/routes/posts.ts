@@ -3,13 +3,12 @@ import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
-import { getDb } from "../db";
 import { requireAuth } from "../middleware/auth";
+import type { AppEnv } from "./_index";
 
-const app = new Hono<{ Bindings: Env }>()
+const app = new Hono<AppEnv>()
   .get("/", async (c) => {
     try {
-      const db = getDb(c);
       const currentUserId = c.req.query("currentUserId");
       const isPublicOnly = c.req.query("publicOnly") === "true";
 
@@ -23,7 +22,7 @@ const app = new Hono<{ Bindings: Env }>()
         );
       }
 
-      const result = await db
+      const result = await c.var.db
         .select({
           id: posts.id,
           title: posts.title,
@@ -66,8 +65,7 @@ const app = new Hono<{ Bindings: Env }>()
     async (c) => {
       try {
         const data = await c.req.json();
-        const db = getDb(c);
-        const result = await db.insert(posts).values(data).returning();
+        const result = await c.var.db.insert(posts).values(data).returning();
         return c.json(result[0]);
       } catch (error) {
         console.error(error);

@@ -1,12 +1,12 @@
 import { Link, useOutletContext } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import type { loader } from "~/root";
-import type { SelectUser } from "~/schema";
+import type { SelectPost, SelectUser } from "~/schema";
 
 type ContextType = {
   user: SelectUser | null;
   users: SelectUser[];
-  posts: any[];
+  posts: (SelectPost & { user_name: string })[];
 };
 
 export default function Index() {
@@ -18,8 +18,7 @@ export default function Index() {
   };
 
   // 日付フォーマット用の関数
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("ja-JP", {
       year: "numeric",
       month: "numeric",
