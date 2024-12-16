@@ -17,11 +17,6 @@ type ContextType = {
 export default function Index() {
   const { user, users, posts } = useOutletContext<ContextType>();
 
-  // ユーザーIDからユーザー情報を取得する関数
-  const getUserById = (userId: string) => {
-    return users?.find((user) => user.id === userId);
-  };
-
   // 日付フォーマット用の関数
   const formatDate = (date: string) => {
     return new Intl.DateTimeFormat("ja-JP", {
@@ -47,7 +42,6 @@ export default function Index() {
         <div className="space-y-4">
           {posts.length > 0 ? (
             posts.map((post) => {
-              const postUser = getUserById(post.user_id);
               return (
                 <div key={post.id} className="border-b pb-4">
                   <h3 className="text-lg font-semibold">{post.title}</h3>
@@ -56,7 +50,7 @@ export default function Index() {
                     <p className="text-sm text-gray-600">
                       投稿者:{" "}
                       <Link to={`/users/${post.user_id}`} className="text-blue-500 hover:text-blue-600">
-                        {postUser?.name || "不明なユーザー"}
+                        {post.user_name || "不明なユーザー"}
                       </Link>
                     </p>
                     <p className="text-sm text-gray-500">投稿日: {formatDate(post.created_at)}</p>

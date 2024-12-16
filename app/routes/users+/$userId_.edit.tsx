@@ -53,6 +53,13 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
   const userData: unknown = await userResponse.json();
 
   if (isApiError(userData)) {
+    if (userData.code === "NotFoundError") {
+      return redirect("/complete-profile", {
+        headers: {
+          "Set-Cookie": request.headers.get("Cookie") || "",
+        },
+      });
+    }
     throw new Error(userData.message);
   }
 
@@ -123,7 +130,7 @@ export default function UserEdit() {
               name="name"
               defaultValue={pageUser.name}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-gray-900"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
             />
           </div>
           <div>
@@ -135,7 +142,7 @@ export default function UserEdit() {
               name="bio"
               rows={5}
               defaultValue={pageUser.bio || ""}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-gray-900"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
             />
           </div>
           <div className="flex justify-end gap-4">

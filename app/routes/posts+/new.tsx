@@ -43,7 +43,6 @@ export async function action({ request, context }: ActionFunctionArgs) {
       title,
       content,
       is_public: isPublic,
-      user_id: user.id,
     },
   });
 

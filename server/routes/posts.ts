@@ -10,7 +10,6 @@ import type { AppEnv } from "./_index";
 const postSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
   content: z.string().min(1, "Content is required").max(10000, "Content must be less than 10000 characters"),
-  user_id: z.string().uuid("Invalid user ID format"),
   is_public: z.boolean().default(false),
 });
 
@@ -54,15 +53,16 @@ const app = new Hono<AppEnv>()
   .post("/", requireAuth, zValidator("json", postSchema), async (c) => {
     try {
       const data = await c.req.json();
+      const user = c.get("user");
 
-      // Check if user exists
-      const userExists = await c.var.db.select({ id: users.id }).from(users).where(eq(users.id, data.user_id)).limit(1);
-
-      if (userExists.length === 0) {
-        throw new NotFoundError("User");
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
 
-      const result = await c.var.db.insert(posts).values(data).returning();
+      const result = await c.var.db
+        .insert(posts)
+        .values({ ...data, user_id: user.id })
+        .returning();
       return c.json(result[0]);
     } catch (error) {
       return handleError(c, error);

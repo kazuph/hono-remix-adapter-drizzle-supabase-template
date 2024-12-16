@@ -4,7 +4,6 @@ import type { User } from "@supabase/supabase-js";
 import { Pencil } from "lucide-react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
-import type { SelectUser } from "~/schema";
 import { createSupabaseServerClient } from "~/supabase.server";
 
 export const meta: MetaFunction = () => {
@@ -13,7 +12,6 @@ export const meta: MetaFunction = () => {
 
 type ContextType = {
   user: User | null;
-  users: SelectUser[];
 };
 
 interface ApiUser {
@@ -97,11 +95,7 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Error(`Failed to fetch posts: ${data.error}`);
   }
 
-  const sortedPosts = [...data].sort(
-    (a: Post, b: Post) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
-  );
-
-  return { pageUser: userData, postsData: sortedPosts };
+  return { pageUser: userData, postsData: data };
 }
 
 export default function UserDetail() {

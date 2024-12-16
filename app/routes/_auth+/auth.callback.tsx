@@ -38,7 +38,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       const client = getApiClient(context, request);
       console.log("🔍 Checking user existence for ID:", user.id);
       const response = await client.api.users.$get({
-        query: { id: user.id },
+        query: { email: user.email },
       });
       console.log("📡 API Response:", {
         ok: response.ok,
@@ -49,26 +49,34 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       const responseBody = await response.json();
       console.log("📦 Response body:", responseBody);
 
+      // ユーザーが存在しない場合は自動的に作成
       if (!response.ok || !responseBody || (Array.isArray(responseBody) && responseBody.length === 0)) {
-        console.log("⚠️ User not found, redirecting to profile completion");
-        console.log("🔄 Redirecting to complete-profile with headers:", {
-          headers: Object.fromEntries(supabase.headers.entries()),
-          cookies: supabase.headers.get("Set-Cookie"),
+        console.log("⚠️ User not found, creating new user");
+        const createResponse = await client.api.users.$post({
+          json: {
+            id: user.id,
+            name: user.user_metadata.full_name || user.email?.split("@")[0] || "Anonymous",
+            email: user.email!,
+            bio: null,
+            avatar_url: user.user_metadata.avatar_url || null,
+          },
         });
 
-        // ユーザーが存在しない場合は、ユーザー情報入力ページへリダイレクト
-        return redirect("/complete-profile", {
-          headers: supabase.headers,
-        });
+        if (!createResponse.ok) {
+          console.error("❌ Failed to create user:", await createResponse.text());
+          throw new Error("Failed to create user");
+        }
+
+        console.log("✅ User created successfully");
       }
 
-      // ユーザーが存在する場合はホームページへ
+      // ホームページへリダイレクト
       return redirect("/", {
         headers: supabase.headers,
       });
     } catch (error) {
-      // エラーの場合も新規ユーザーとして扱う
-      console.error("❌ Error during user check:", error);
+      // エラーの場合はプロフィール編集ページへ
+      console.error("❌ Error during user check/creation:", error);
       return redirect("/complete-profile", {
         headers: supabase.headers,
       });
