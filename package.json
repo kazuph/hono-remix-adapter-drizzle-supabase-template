@@ -1,5 +1,6 @@
 {
   "name": "hono-remix-adapter-drizzle-supabase-app",
+  "version": "1.0.0",
   "private": true,
   "sideEffects": false,
   "type": "module",
