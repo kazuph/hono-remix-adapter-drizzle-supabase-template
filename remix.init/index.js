@@ -21,7 +21,7 @@ async function main({ rootDirectory }) {
   const PACKAGE_JSON_PATH = path.join(rootDirectory, "package.json");
   const WRANGLER_TOML_PATH = path.join(rootDirectory, "wrangler.toml");
 
-  const REPLACER = "hono-remix-adapter-drizzle-supabase-template";
+  const REPLACER = "remix-ginnan-stack";
 
   const DIR_NAME = path.basename(rootDirectory);
   const SUFFIX = getRandomString(2);

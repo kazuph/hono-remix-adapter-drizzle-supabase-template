@@ -1,5 +1,5 @@
 #:schema node_modules/wrangler/config-schema.json
-name = "hono-remix-adapter-drizzle-supabase-app"
+name = "remix-ginnan-app"
 compatibility_date = "2024-11-06"
 compatibility_flags = ["nodejs_compat"]
 # main = "./worker.ts"

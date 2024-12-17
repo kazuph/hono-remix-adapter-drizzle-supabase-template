@@ -1,4 +1,4 @@
-# 🚀 Hono Remix Adapter Template
+# 🚀 Remix Ginnan Stack
 
 A web application template powered by Remix and Hono, designed to run on Cloudflare Pages.
 
@@ -11,7 +11,7 @@ A web application template powered by Remix and Hono, designed to run on Cloudfl
 You can create a new project based on this template using the following command:
 
 ```bash
-npx create-remix@latest --template kazuph/hono-remix-adapter-drizzle-supabase-template
+npx create-remix@latest --template kazuph/remix-ginnan-stack
 ```
 
 After the project is created:
