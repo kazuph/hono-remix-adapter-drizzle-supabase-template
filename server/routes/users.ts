@@ -1,95 +1,113 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq } from "drizzle-orm";
 import { Hono } from "hono";
+import { requireAuth } from "server/middleware/auth";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
-import { getDb } from "../db";
+import { NotFoundError, ValidationError, handleError } from "../utils/error";
+import type { AppEnv } from "./_index";
 
-const app = new Hono<{ Bindings: Env }>()
+const userCreateSchema = z.object({
+  id: z.string().uuid("Invalid user ID format"),
+  name: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+  email: z.string().email("Invalid email format"),
+  bio: z.string().max(500, "Bio must be less than 500 characters").nullable().optional(),
+  avatar_url: z.string().url("Invalid URL format").nullable().optional(),
+});
+
+const userUpdateSchema = z.object({
+  name: z.string().min(1, "Name is required").max(50, "Name must be less than 50 characters"),
+  bio: z.string().max(500, "Bio must be less than 500 characters").nullable(),
+});
+
+const app = new Hono<AppEnv>()
   .get("/", async (c) => {
     try {
-      const db = getDb(c);
-      const result = await db.select().from(users);
+      const email = c.req.query("email");
+      const currentUserId = c.req.query("currentUserId") ?? null;
+
+      const result = await c.var.db
+        .select({
+          id: users.id,
+          name: users.name,
+          avatar_url: users.avatar_url,
+          email: users.email,
+          bio: users.bio,
+          created_at: users.created_at,
+          updated_at: users.updated_at,
+        })
+        .from(users)
+        .where(email ? eq(users.email, email) : undefined);
+
       return c.json(result);
     } catch (error) {
-      console.error("Detailed error in /api/users:", {
-        error,
-        message: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-      });
-      return c.text(`error code: ${error instanceof Error ? error.message : "1042"}`, 500);
+      return handleError(c, error);
     }
   })
   .get("/:userId", async (c) => {
     try {
       const userId = c.req.param("userId");
-      const db = getDb(c);
-      const result = await db.select().from(users).where(eq(users.id, userId));
+      const currentUserId = c.req.query("currentUserId") ?? null;
 
-      if (result.length === 0) {
-        return c.json({ error: "User not found" }, 404);
+      const user = await c.var.db
+        .select({
+          id: users.id,
+          name: users.name,
+          avatar_url: users.avatar_url,
+          email: users.email,
+          bio: users.bio,
+          created_at: users.created_at,
+          updated_at: users.updated_at,
+        })
+        .from(users)
+        .where(eq(users.id, userId));
+
+      if (user.length === 0) {
+        throw new NotFoundError("User");
       }
+      const result = user[0];
 
-      return c.json(result[0]);
+      return c.json(result);
     } catch (error) {
-      console.error("Error fetching user:", error);
-      return c.json(
-        {
-          error: "Failed to fetch user",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .patch(
-    "/:userId",
-    zValidator(
-      "json",
-      z.object({
-        name: z.string(),
-        bio: z.string().nullable(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const userId = c.req.param("userId");
-        const data = await c.req.json();
-        const db = getDb(c);
+  .patch("/:userId", requireAuth, zValidator("json", userUpdateSchema), async (c) => {
+    try {
+      const userId = c.req.param("userId");
+      const data = await c.req.json();
+      const user = c.get("user");
 
-        const result = await db.update(users).set(data).where(eq(users.id, userId)).returning();
-
-        if (result.length === 0) {
-          return c.json({ error: "User not found" }, 404);
-        }
-
-        return c.json(result[0]);
-      } catch (error) {
-        console.error("Error updating user:", error);
-        return c.json(
-          {
-            error: "Failed to update user",
-            details: error instanceof Error ? error.message : String(error),
-          },
-          500,
-        );
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
-    },
-  )
+
+      const updated = await c.var.db.update(users).set(data).where(eq(users.id, userId)).returning({
+        id: users.id,
+        name: users.name,
+        avatar_url: users.avatar_url,
+        email: users.email,
+        bio: users.bio,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      });
+
+      if (updated.length === 0) {
+        throw new NotFoundError("User");
+      }
+      const result = updated[0];
+
+      return c.json(result);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  })
   .get("/:userId/posts", async (c) => {
     try {
-      const db = getDb(c);
       const userId = c.req.param("userId");
-      const currentUserId = c.req.query("currentUserId");
-      const isPublicOnly = c.req.query("publicOnly") === "true";
+      const currentUserId = c.req.query("currentUserId") ?? null;
 
-      const conditions = [eq(posts.user_id, userId)];
-
-      if (currentUserId !== userId) {
-        conditions.push(eq(posts.is_public, true));
-      }
-
-      const result = await db
+      const result = await c.var.db
         .select({
           id: posts.id,
           title: posts.title,
@@ -102,43 +120,49 @@ const app = new Hono<{ Bindings: Env }>()
         })
         .from(posts)
         .leftJoin(users, eq(posts.user_id, users.id))
-        .where(and(...conditions));
+        .where(eq(posts.user_id, userId))
+        .orderBy(desc(posts.created_at));
 
       return c.json(result);
     } catch (error) {
-      console.error("Error fetching user posts:", error);
-      return c.json(
-        {
-          error: "Failed to fetch user posts",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .post(
-    "/",
-    zValidator(
-      "json",
-      z.object({
-        id: z.string(),
-        name: z.string(),
-        email: z.string().email(),
-        bio: z.string().nullable().optional(),
-        avatar_url: z.string().nullable().optional(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const data = await c.req.json();
-        const db = getDb(c);
-        const result = await db.insert(users).values(data).returning();
-        return c.json(result[0]);
-      } catch (error) {
-        console.error(error);
-        return c.json({ error: "Failed to create user" }, 500);
+  .post("/", requireAuth, zValidator("json", userCreateSchema), async (c) => {
+    try {
+      const data = await c.req.json();
+      const user = c.get("user");
+
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
-    },
-  );
+
+      // Check if email already exists
+      const emailExists = await c.var.db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, data.email))
+        .limit(1);
+
+      if (emailExists.length > 0) {
+        throw new ValidationError("Email already exists");
+      }
+
+      const inserted = await c.var.db.insert(users).values(data).returning({
+        id: users.id,
+        name: users.name,
+        avatar_url: users.avatar_url,
+        email: users.email,
+        bio: users.bio,
+        created_at: users.created_at,
+        updated_at: users.updated_at,
+      });
+      const result = inserted[0];
+
+      return c.json(result);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
 
 export default app;

@@ -1,0 +1,14 @@
+node_modules
+.DS_Store
+.env
+.dev.vars
+.wrangler
+build
+public/build
+.cache
+api/index.js
+api/index.js.map
+api/_assets
+.env*
+!.env.example
+!.dev.vars.example

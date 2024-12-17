@@ -4,6 +4,23 @@ A web application template powered by Remix and Hono, designed to run on Cloudfl
 
 ![sample](sample.png)
 
+## 🛠 Getting Started
+
+### Using this template
+
+You can create a new project based on this template using the following command:
+
+```bash
+npx create-remix@latest --template kazuph/hono-remix-adapter-drizzle-supabase-template
+```
+
+After the project is created:
+
+1. Copy `.dev.vars.example` to `.dev.vars`
+2. Update environment variables in `.dev.vars`
+3. Run `pnpm install` to install dependencies
+4. Run `pnpm dev` to start the development server
+
 ## 🛠 Tech Stack
 
 ### 🏗 Framework & Runtime

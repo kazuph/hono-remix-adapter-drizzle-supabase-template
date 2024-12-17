@@ -20,33 +20,22 @@ function isErrorResponse(response: any): response is ErrorResponse {
 export async function loader({ request, context }: LoaderFunctionArgs) {
   const authUser = await getUser(request, context);
 
-  // ユーザー一覧を取得
-  const apiClient = getApiClient(request);
-  const [usersResponse, postsResponse] = await Promise.all([apiClient.api.users.$get(), apiClient.api.posts.$get()]);
-
-  const [usersData, postsData] = await Promise.all([usersResponse.json(), postsResponse.json()]);
-
-  if (isErrorResponse(usersData)) {
-    throw new Error(`Failed to fetch users: ${usersData.error}`);
-  }
+  const apiClient = getApiClient(context, request);
+  const postsResponse = await apiClient.api.posts.$get();
+  const postsData = await postsResponse.json();
 
   if (isErrorResponse(postsData)) {
     throw new Error(`Failed to fetch posts: ${postsData.error}`);
   }
 
-  // 認証ユーザーのDBデータを取得
-  const dbUser = authUser ? usersData.find((u: any) => u.email === authUser.email) : null;
-
   return {
-    authUser, // Headerコンポーネント用
-    user: dbUser, // アプリケーション用のユーザーデータ
-    users: usersData,
+    authUser,
     posts: postsData,
   };
 }
 
 export default function App() {
-  const { authUser, user, users, posts } = useLoaderData<typeof loader>();
+  const { authUser, posts } = useLoaderData<typeof loader>();
 
   return (
     <html lang="ja">
@@ -56,11 +45,11 @@ export default function App() {
         <Meta />
         <Links />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <div className="min-h-screen flex flex-col">
           <Header user={authUser} />
           <main className="flex-1 container mx-auto px-4 py-8">
-            <Outlet context={{ user, users, posts }} />
+            <Outlet context={{ posts }} />
           </main>
           <footer className="bg-gray-800 text-white py-4">
             <div className="container mx-auto px-4 text-center">

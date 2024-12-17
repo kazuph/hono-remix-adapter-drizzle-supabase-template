@@ -1,5 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs, MetaFunction } from "@remix-run/cloudflare";
-import { json, redirect } from "@remix-run/cloudflare";
+import { redirect } from "@remix-run/cloudflare";
 import { Form, useLoaderData } from "@remix-run/react";
 import { Button } from "~/components/ui/button";
 import { getApiClient } from "~/lib/client";
@@ -19,15 +19,16 @@ interface ApiUser {
   updated_at: string;
 }
 
-interface ErrorResponse {
-  error: string;
-  details?: string;
+interface ApiError {
+  code: string;
+  message: string;
+  details?: unknown;
 }
 
-type ApiUserResponse = ApiUser | ErrorResponse;
+type ApiUserResponse = ApiUser | ApiError;
 
-function isErrorResponse(response: any): response is ErrorResponse {
-  return "error" in response;
+function isApiError(response: unknown): response is ApiError {
+  return typeof response === "object" && response !== null && "code" in response;
 }
 
 export async function loader({ request, context, params }: LoaderFunctionArgs) {
@@ -45,17 +46,24 @@ export async function loader({ request, context, params }: LoaderFunctionArgs) {
     throw new Error("Unauthorized");
   }
 
-  const apiClient = getApiClient(request);
+  const apiClient = getApiClient(context, request);
   const userResponse = await apiClient.api.users[":userId"].$get({
     param: { userId },
   });
-  const userData: ApiUserResponse = await userResponse.json();
+  const userData: unknown = await userResponse.json();
 
-  if (isErrorResponse(userData)) {
-    throw new Error("User not found");
+  if (isApiError(userData)) {
+    if (userData.code === "NotFoundError") {
+      return redirect("/complete-profile", {
+        headers: {
+          "Set-Cookie": request.headers.get("Cookie") || "",
+        },
+      });
+    }
+    throw new Error(userData.message);
   }
 
-  return { pageUser: userData };
+  return { pageUser: userData as ApiUser };
 }
 
 export async function action({ request, context, params }: ActionFunctionArgs) {
@@ -77,18 +85,31 @@ export async function action({ request, context, params }: ActionFunctionArgs) {
     throw new Error("Unauthorized");
   }
 
-  const apiClient = getApiClient(request);
-  const response = await apiClient.api.users[":userId"].$patch({
-    param: { userId },
-    json: { name, bio },
-  });
+  const apiClient = getApiClient(context, request);
+  try {
+    const response = await apiClient.api.users[":userId"].$patch({
+      param: { userId },
+      json: { name, bio },
+    });
 
-  const result: ApiUserResponse = await response.json();
-  if (!response.ok || isErrorResponse(result)) {
-    return json({ error: isErrorResponse(result) ? result.error : "Failed to update profile" }, { status: 400 });
+    const responseData: unknown = await response.json();
+
+    if (!response.ok) {
+      if (isApiError(responseData)) {
+        return { error: responseData.message };
+      }
+      return { error: "Failed to update profile" };
+    }
+
+    if (isApiError(responseData)) {
+      return { error: responseData.message };
+    }
+
+    return redirect(`/users/${userId}`);
+  } catch (error) {
+    console.error("Error updating user:", error);
+    return { error: error instanceof Error ? error.message : "Failed to update profile" };
   }
-
-  return redirect(`/users/${userId}`);
 }
 
 export default function UserEdit() {
@@ -109,7 +130,7 @@ export default function UserEdit() {
               name="name"
               defaultValue={pageUser.name}
               required
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-gray-900"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
             />
           </div>
           <div>
@@ -121,7 +142,7 @@ export default function UserEdit() {
               name="bio"
               rows={5}
               defaultValue={pageUser.bio || ""}
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 bg-white text-gray-900"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900"
             />
           </div>
           <div className="flex justify-end gap-4">

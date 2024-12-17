@@ -1,14 +1,21 @@
 import { zValidator } from "@hono/zod-validator";
-import { and, eq, or } from "drizzle-orm";
+import { and, desc, eq, or } from "drizzle-orm";
 import { Hono } from "hono";
 import { z } from "zod";
 import { posts, users } from "../../app/schema";
-import { getDb } from "../db";
+import { requireAuth } from "../middleware/auth";
+import { NotFoundError, handleError } from "../utils/error";
+import type { AppEnv } from "./_index";
 
-const app = new Hono<{ Bindings: Env }>()
+const postSchema = z.object({
+  title: z.string().min(1, "Title is required").max(100, "Title must be less than 100 characters"),
+  content: z.string().min(1, "Content is required").max(10000, "Content must be less than 10000 characters"),
+  is_public: z.boolean().default(false),
+});
+
+const app = new Hono<AppEnv>()
   .get("/", async (c) => {
     try {
-      const db = getDb(c);
       const currentUserId = c.req.query("currentUserId");
       const isPublicOnly = c.req.query("publicOnly") === "true";
 
@@ -22,7 +29,7 @@ const app = new Hono<{ Bindings: Env }>()
         );
       }
 
-      const result = await db
+      const result = await c.var.db
         .select({
           id: posts.id,
           title: posts.title,
@@ -35,42 +42,31 @@ const app = new Hono<{ Bindings: Env }>()
         })
         .from(posts)
         .leftJoin(users, eq(posts.user_id, users.id))
-        .where(conditions.length > 0 ? and(...conditions) : undefined);
+        .where(conditions.length > 0 ? and(...conditions) : undefined)
+        .orderBy(desc(posts.created_at));
 
       return c.json(result);
     } catch (error) {
-      console.error("Error fetching posts:", error);
-      return c.json(
-        {
-          error: "Failed to fetch posts",
-          details: error instanceof Error ? error.message : String(error),
-        },
-        500,
-      );
+      return handleError(c, error);
     }
   })
-  .post(
-    "/",
-    zValidator(
-      "json",
-      z.object({
-        title: z.string(),
-        content: z.string(),
-        user_id: z.string(),
-        is_public: z.boolean().optional(),
-      }),
-    ),
-    async (c) => {
-      try {
-        const data = await c.req.json();
-        const db = getDb(c);
-        const result = await db.insert(posts).values(data).returning();
-        return c.json(result[0]);
-      } catch (error) {
-        console.error(error);
-        return c.json({ error: "Failed to create post" }, 500);
+  .post("/", requireAuth, zValidator("json", postSchema), async (c) => {
+    try {
+      const data = await c.req.json();
+      const user = c.get("user");
+
+      if (!user) {
+        return c.json({ error: "Unauthorized" }, 401);
       }
-    },
-  );
+
+      const result = await c.var.db
+        .insert(posts)
+        .values({ ...data, user_id: user.id })
+        .returning();
+      return c.json(result[0]);
+    } catch (error) {
+      return handleError(c, error);
+    }
+  });
 
 export default app;
